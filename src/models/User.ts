@@ -1,6 +1,6 @@
 import { model, Schema, Document } from 'mongoose'
 
-import { isEmail } from '../utils'
+import { generateMD5, isEmail } from '../utils'
 
 export interface IUser extends Document {
   email: string
@@ -28,6 +28,7 @@ const UserSchema = new Schema<IUser>(
 
     password: {
       type: String,
+      select: false,
       required: 'Password is required'
     },
 
@@ -47,5 +48,16 @@ const UserSchema = new Schema<IUser>(
   },
   { timestamps: true }
 )
+
+UserSchema.pre<IUser>('save', async function (next) {
+  const user = this
+
+  if (!user.isModified('password')) {
+    return next()
+  }
+
+  user.password = await generateMD5(user.password)
+  user.confirmHash = await generateMD5(new Date().toString())
+})
 
 export const UserModel = model<IUser>('User', UserSchema)
