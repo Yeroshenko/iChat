@@ -1,36 +1,32 @@
 import { Request, Response } from 'express'
+import { MessageModel } from '../models'
 
-import { UserModel } from '../models'
-import { generateMD5 } from '../utils'
-
-class UserController {
+class MessageController {
   async create(req: Request, res: Response): Promise<void> {
     try {
       const data = {
-        email: req.body.email,
-        fullName: req.body.fullName,
-        password: req.body.password,
-        confirmHash: generateMD5(
-          process.env.SECRET_KEY || Math.random().toString()
-        )
+        text: req.body.text,
+        dialog: req.body.dialogId,
+        user: req.body.userId || '6048abef8f907f2efcf51e1c'
       }
 
-      const user = await UserModel.create(data)
+      const message = await MessageModel.create(data)
 
-      res.status(201).json({ success: true, data: user })
+      res.status(201).json({ success: true, data: message })
     } catch (err) {
       res.status(500).json({ success: false, message: err })
     }
   }
 
   async show(req: Request, res: Response): Promise<void> {
+    const { id } = req.params
     try {
-      const { id } = req.params
-
-      UserModel.findById(id)
-        .then(user => res.json({ success: true, data: user }))
+      MessageModel.find({ dialog: id })
+        .populate(['dialog'])
+        .exec()
+        .then(messages => res.json({ success: true, data: messages }))
         .catch(() =>
-          res.status(404).json({ success: false, message: 'User not found' })
+          res.status(404).json({ success: false, message: 'Messages fot found' })
         )
     } catch (err) {
       res.status(500).json({ success: false, message: err })
@@ -41,7 +37,7 @@ class UserController {
     try {
       const { id } = req.params
 
-      UserModel.deleteOne({ _id: id })
+      MessageModel.deleteOne({ _id: id })
         .then(() => res.json({ success: true, data: id }))
         .catch(() =>
           res.status(404).json({ success: false, message: 'Invalid id' })
@@ -52,4 +48,4 @@ class UserController {
   }
 }
 
-export const UserCtrl = new UserController()
+export const MessageCtrl = new MessageController()
